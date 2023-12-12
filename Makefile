@@ -1,12 +1,9 @@
 CC = gcc
-CFLAGS = -Wall -g # -Werror -pedantic
-LDFLAGS =
+CFLAGS = -Wall -I/opt/homebrew/opt/openssl@3/include
+LDFLAGS = -L/opt/homebrew/opt/openssl@3/lib -lssl -lcrypto
 
-fetchmail: fetchmail.o
-	$(CC) $(LDFLAGS) -o fetchmail fetchmail.o
-
-fetchmail.o: fetchmail.c fetchmail.h
-	$(CC) $(CFLAGS) -c fetchmail.c
+fetchmail: fetchmail.c
+	$(CC) $(CFLAGS) -o fetchmail fetchmail.c $(LDFLAGS)
 
 clean:
 	rm -f *.o fetchmail
