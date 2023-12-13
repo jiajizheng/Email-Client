@@ -6,6 +6,7 @@
 
 #define MAX_BUFFER_SIZE 10240
 
+
 void send_receive_ssl(BIO *bio, const char *send_cmd, char *recv_buffer, size_t buffer_size) {
     // Send command
     BIO_puts(bio, send_cmd);
@@ -66,18 +67,36 @@ int main(int argc, char *argv[]) {
     // Fetch the first email
     char fetch_command[] = "A03 FETCH 1 BODY.PEEK[]\r\n";
     char fetch_response[MAX_BUFFER_SIZE];
-    // char combined[102400];
-    // send_receive_ssl(bio, fetch_command, fetch_response, 10240);
-    // for (int i = 0; i < 20; i++) {
-    //     //BIO_read(bio, fetch_response, 10240);
-    //     send_receive_ssl(bio, fetch_command, fetch_response, 10240);
-    //     strcat(combined, fetch_response);
-    // }
-    // printf("combined:\n%s\n", combined);
-    send_receive_ssl(bio, fetch_command, fetch_response, sizeof(fetch_response));
+    char combined[102400];
+    
+    // BIO_read does not always read the full response so I have to call it multiple times. Also, since SSL BIO is blocking, 
+    // if there is no new data to be read, BIO_read will not actually return and will just keep waiting for a response. 
+    // Therefore, I will just keep sending fetch commands so there will always be something to read.
+    // The amount of times that I need to call send_receive_ssl is arbitrary but it just needs to be long enough to not miss out on any details.
+    for (int i = 0; i < 20; i++) {
+        //BIO_read(bio, fetch_response, 10240);
+        send_receive_ssl(bio, fetch_command, fetch_response, 10240);
+        strcat(combined, fetch_response);
+    }
+    //printf("combined:\n%s\n", combined);
 
-    // Display the email body
-    printf("Email Body:\n%s\n", fetch_response);
+    // This code is for manipulating the strings to extract the email body, starting at "From:"
+    // I noticed that the email contents began and ended at the parts with double dashes (--) followed by random numbers and letters
+    char* from_pos;
+    from_pos = strstr(combined, "From");
+    char* first_dash = strstr(from_pos, "--");
+    char* second_dash = strstr(first_dash + 2, "--");
+    size_t body_length = second_dash - from_pos - 2;
+    char* email_body = malloc(body_length + 1);
+    strncpy(email_body, from_pos, body_length);
+    email_body[body_length] = '\0';
+
+    printf("Email Body:\n%s\n", email_body);
+
+    // send_receive_ssl(bio, fetch_command, fetch_response, sizeof(fetch_response));
+
+    // // Display the email body
+    // printf("Email Body:\n%s\n", fetch_response);
     
     
     
